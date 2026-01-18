@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./public:/var/www/html
+      - ./includes:/var/www/includes
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_NAME=resume_db
+      - DB_USER=resume_user
+      - DB_PASS=resume_password
+    networks:
+      - resume_network
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: resume_db
+      MYSQL_USER: resume_user
+      MYSQL_PASSWORD: resume_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - resume_network
+
+volumes:
+  mysql_data:
+
+networks:
+  resume_network:
+    driver: bridge
